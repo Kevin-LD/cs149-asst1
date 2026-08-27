@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <thread>
+#include <stdlib.h>
 
 #include "CycleTimer.h"
 
