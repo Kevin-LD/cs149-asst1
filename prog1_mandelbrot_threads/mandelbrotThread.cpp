@@ -29,14 +29,40 @@ extern void mandelbrotSerial(
 //
 // Thread entrypoint.
 void workerThreadStart(WorkerArgs * const args) {
-
+    
     // TODO FOR CS149 STUDENTS: Implement the body of the worker
     // thread here. Each thread should make a call to mandelbrotSerial()
     // to compute a part of the output image.  For example, in a
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
 
-    printf("Hello world from thread %d\n", args->threadId);
+    // printf("Hello world from thread %d\n", args->threadId);
+
+    double minTime = 1e30;
+    double startTime = CycleTimer::currentSeconds();
+    // ceil(height/numThreads)
+    unsigned int num_row = (args->height-1) / args->numThreads + 1;
+
+    unsigned int start_row = args->threadId * num_row;
+
+    // 处理边界越界
+    num_row = (start_row + num_row > args->height) ? (args->height - start_row) : num_row;
+
+    mandelbrotSerial(args->x0, args->y0, args->x1, args-> y1, args->width, args->height, start_row, num_row, args->maxIterations, args->output);
+    double endTime = CycleTimer::currentSeconds();
+    minTime = std::min(minTime, endTime - startTime);
+
+    printf("[worker time(id: %d)]:\t\t[%.3f] ms\n", args->threadId, minTime * 1000);
+    // 交错分配（Round-Robin）：从 args->threadId 开始，按步长 args->numThreads 跨行处理
+    // for (unsigned int row = args->threadId; row < args->height; row += args->numThreads) {
+    //     mandelbrotSerial(
+    //         args->x0, args->y0, args->x1, args->y1,
+    //         args->width, args->height,
+    //         row, 1, // startRow = row, totalRows = 1
+    //         args->maxIterations, 
+    //         args->output
+    //     );
+    // }
 }
 
 //
