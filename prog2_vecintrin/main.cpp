@@ -249,7 +249,58 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
-  
+  __cs149_vec_float x;
+  __cs149_vec_int y;
+  __cs149_vec_float result;
+  __cs149_vec_int zero = _cs149_vset_int(0);
+  __cs149_vec_float one_float = _cs149_vset_float(1.f);
+  __cs149_vec_int one_int = _cs149_vset_int(1);
+  __cs149_vec_int count;
+  __cs149_vec_float clamp_value = _cs149_vset_float(9.999999f);
+
+  __cs149_mask mask_vec, mask_y_is_zero, mask_y_is_not_zero, mask_clamped, mask_count_gt_zero;
+
+  for (int i = 0; i < N; i += VECTOR_WIDTH) {
+    int actual_vector_width = std::min(VECTOR_WIDTH, N - i);
+    int all_count = 0;
+
+    mask_vec = _cs149_init_ones(actual_vector_width);
+
+    mask_y_is_zero = _cs149_init_ones(0);
+    mask_y_is_not_zero = _cs149_init_ones(0);
+    mask_clamped = _cs149_init_ones(0);
+    mask_count_gt_zero = _cs149_init_ones(0);
+
+    _cs149_vload_float(x, values + i, mask_vec);
+    _cs149_vload_int(y, exponents + i, mask_vec);
+
+    _cs149_veq_int(mask_y_is_zero, y, zero, mask_vec);
+    _cs149_vmove_float(result, one_float, mask_y_is_zero);
+
+    mask_y_is_not_zero = _cs149_mask_not(mask_y_is_zero);
+    mask_y_is_not_zero = _cs149_mask_and(mask_y_is_not_zero, mask_vec);
+
+    _cs149_vmove_float(result, x, mask_y_is_not_zero);
+    _cs149_vmove_int(count, y, mask_y_is_not_zero);
+    _cs149_vsub_int(count, count, one_int, mask_y_is_not_zero);
+
+    _cs149_vgt_int(mask_count_gt_zero, count, zero, mask_y_is_not_zero);
+    
+    all_count = _cs149_cntbits(mask_count_gt_zero);
+
+    while (all_count > 0) {
+      _cs149_vmult_float(result, result, x, mask_count_gt_zero);
+      _cs149_vsub_int(count, count, one_int, mask_vec); // 这里只需要 mask_vec，因为小于 0 的 count 不影响结果。添加掩码可能会更贵。
+
+      _cs149_vgt_int(mask_count_gt_zero, count, zero, mask_y_is_not_zero);
+      all_count = _cs149_cntbits(mask_count_gt_zero);
+    }
+
+    _cs149_vgt_float(mask_clamped, result, clamp_value, mask_vec);
+    _cs149_vmove_float(result, clamp_value, mask_clamped);
+
+    _cs149_vstore_float(output + i, result, mask_vec);
+  }  
 }
 
 // returns the sum of all elements in values
@@ -270,11 +321,30 @@ float arraySumVector(float* values, int N) {
   //
   // CS149 STUDENTS TODO: Implement your vectorized version of arraySumSerial here
   //
+
+  __cs149_vec_float sum_vec = _cs149_vset_float(0.f);
+  __cs149_mask mask_all = _cs149_init_ones();
   
   for (int i=0; i<N; i+=VECTOR_WIDTH) {
-
+    __cs149_vec_float x;
+    _cs149_vload_float(x, values + i, mask_all);
+    _cs149_vadd_float(sum_vec, sum_vec, x, mask_all);
   }
 
-  return 0.0;
+  int step = VECTOR_WIDTH;
+  while (step > 1) {
+    _cs149_hadd_float(sum_vec, sum_vec);
+    _cs149_interleave_float(sum_vec, sum_vec);
+    step /= 2;
+  }
+
+  float* result = new float[VECTOR_WIDTH];
+  _cs149_vstore_float(result, sum_vec, mask_all);
+
+  float total_sum = result[0];
+
+  delete[] result;
+
+  return total_sum;
 }
 
