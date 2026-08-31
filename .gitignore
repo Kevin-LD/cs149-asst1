@@ -1,5 +1,6 @@
 # 编译中间文件
 objs/
+*.o
 
 temp.txt
 
