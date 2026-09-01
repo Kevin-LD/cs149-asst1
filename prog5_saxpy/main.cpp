@@ -3,6 +3,7 @@
 
 #include "CycleTimer.h"
 #include "saxpy_ispc.h"
+#include <cstdint>
 
 extern void saxpySerial(int N, float a, float* X, float* Y, float* result);
 
@@ -37,11 +38,27 @@ int main() {
 
     float scale = 2.f;
 
-    float* arrayX = new float[N];
-    float* arrayY = new float[N];
-    float* resultSerial = new float[N];
-    float* resultISPC = new float[N];
-    float* resultTasks = new float[N];
+    // float* arrayX = new float[N];
+    // float* arrayY = new float[N];
+    // float* resultSerial = new float[N];
+    // float* resultISPC = new float[N];
+    // float* resultTasks = new float[N];
+
+    // 32-aligned allocation
+    float* arrayX =
+    static_cast<float*>(std::aligned_alloc(32, N * sizeof(float)));
+
+    float* arrayY =
+        static_cast<float*>(std::aligned_alloc(32, N * sizeof(float)));
+
+    float* resultSerial =
+        static_cast<float*>(std::aligned_alloc(32, N * sizeof(float)));
+
+    float* resultISPC =
+        static_cast<float*>(std::aligned_alloc(32, N * sizeof(float)));
+
+    float* resultTasks =
+        static_cast<float*>(std::aligned_alloc(32, N * sizeof(float)));
 
     // initialize array values
     for (unsigned int i=0; i<N; i++)
@@ -110,11 +127,18 @@ int main() {
     //printf("\t\t\t\t(%.2fx speedup from ISPC)\n", minSerial/minISPC);
     //printf("\t\t\t\t(%.2fx speedup from task ISPC)\n", minSerial/minTaskISPC);
 
-    delete[] arrayX;
-    delete[] arrayY;
-    delete[] resultSerial;
-    delete[] resultISPC;
-    delete[] resultTasks;
+    // delete[] arrayX;
+    // delete[] arrayY;
+    // delete[] resultSerial;
+    // delete[] resultISPC;
+    // delete[] resultTasks;
+
+    // 32-aligned deallocation
+    std::free(arrayX);
+    std::free(arrayY);
+    std::free(resultSerial);
+    std::free(resultISPC);
+    std::free(resultTasks);
 
     return 0;
 }
