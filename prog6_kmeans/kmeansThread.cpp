@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int num_thread = 16;
+int num_thread = 24;
 
 typedef struct {
   // Control work assignments
